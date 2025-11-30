@@ -2,35 +2,32 @@
 
 A web-based controller for a tank-style robot using Raspberry Pi and L298N motor driver.
 
-## One-Line Install
+## Install
 
-Run this on your Raspberry Pi to install everything (WiFi AP, web server, auto-start):
+### Option 1: Pi already has internet
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash
 ```
 
-Custom WiFi name and password:
+### Option 2: Use phone hotspot (DroidAir)
 
-```bash
-curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash -s -- MyBot mypassword
-```
-
-### Install via Phone Hotspot (DroidAir)
-
-If your Pi isn't connected to WiFi yet, use your phone as a hotspot:
-
-1. Enable hotspot on your phone (name it "DroidAir" or edit the script)
-2. On the Pi, download and run:
+If your Pi isn't online yet, use your phone as a hotspot named "DroidAir":
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install-via-droidair.sh -o install.sh
 sudo bash install.sh <your-hotspot-password>
 ```
 
-This connects to your phone's hotspot, downloads Pi-Bot, then switches to AP mode.
+### Custom WiFi name/password
 
-After install, connect to the **PiBot** WiFi and open `http://192.168.4.1:5000`
+```bash
+curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash -s -- MyBot mypassword
+```
+
+### After install
+
+Connect to the **PiBot** WiFi (password: `pibot1234`) and open `http://192.168.4.1:5000`
 
 ## Features
 
