@@ -16,7 +16,21 @@ Custom WiFi name and password:
 curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash -s -- MyBot mypassword
 ```
 
-After reboot, connect to the **PiBot** WiFi and open `http://192.168.4.1:5000`
+### Install via Phone Hotspot (DroidAir)
+
+If your Pi isn't connected to WiFi yet, use your phone as a hotspot:
+
+1. Enable hotspot on your phone (name it "DroidAir" or edit the script)
+2. On the Pi, download and run:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install-via-droidair.sh -o install.sh
+sudo bash install.sh <your-hotspot-password>
+```
+
+This connects to your phone's hotspot, downloads Pi-Bot, then switches to AP mode.
+
+After install, connect to the **PiBot** WiFi and open `http://192.168.4.1:5000`
 
 ## Features
 
@@ -95,6 +109,7 @@ pi-bot/
 │   ├── install-service.sh    # Install systemd service
 │   └── uninstall-service.sh  # Remove systemd service
 ├── install.sh            # One-line installer (curl | bash)
+├── install-via-droidair.sh  # Install via phone hotspot
 ├── README.md
 ├── SETUP.md
 ├── wiring.md
