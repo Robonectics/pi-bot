@@ -19,7 +19,7 @@ python3 -m venv venv && source venv/bin/activate && pip install -r requirements.
 Then start the web server:
 
 ```bash
-sudo venv/bin/python3 pibotweb.py
+sudo venv/bin/python3 src/pibotweb.py
 ```
 
 ## Detailed Setup Instructions
@@ -78,14 +78,14 @@ Key settings you might want to change:
 **Important:** GPIO access requires root privileges, so use `sudo`:
 
 ```bash
-sudo venv/bin/python3 pibotweb.py
+sudo venv/bin/python3 src/pibotweb.py
 ```
 
 Or activate the venv first, then run with sudo:
 
 ```bash
 source venv/bin/activate
-sudo $(which python3) pibotweb.py
+sudo $(which python3) src/pibotweb.py
 ```
 
 ### 6. Access the Web Interface
@@ -111,60 +111,69 @@ Example: `http://192.168.1.100:5000`
 
 ## Running as a Service (Auto-start on Boot)
 
-To make the robot controller start automatically on boot:
+To make Pi-Bot start automatically when the Pi boots up:
 
-### 1. Create systemd service file
-
-```bash
-sudo nano /etc/systemd/system/pibot.service
-```
-
-Add this content:
-
-```ini
-[Unit]
-Description=Pi-Bot Web Controller
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/home/michael/code/pi-bot
-Environment="PATH=/home/michael/code/pi-bot/venv/bin"
-ExecStart=/home/michael/code/pi-bot/venv/bin/python3 /home/michael/code/pi-bot/pibotweb.py
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-### 2. Enable and start the service
+### Install the Service
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable pibot.service
-sudo systemctl start pibot.service
+sudo ./scripts/install-service.sh
 ```
 
-### 3. Check service status
+This script:
+- Creates a systemd service with correct paths
+- Sets up the virtual environment if needed
+- Waits for network before starting (works with AP mode)
+- Enables auto-start on boot
+
+### Service Commands
 
 ```bash
-sudo systemctl status pibot.service
+# Check if running
+sudo systemctl status pibot
+
+# Start/stop/restart
+sudo systemctl start pibot
+sudo systemctl stop pibot
+sudo systemctl restart pibot
+
+# View live logs
+sudo journalctl -u pibot -f
+
+# View recent logs
+sudo journalctl -u pibot -n 50
 ```
 
-### 4. View logs
+### Uninstall the Service
 
 ```bash
-sudo journalctl -u pibot.service -f
+sudo ./scripts/uninstall-service.sh
 ```
 
-### 5. Stop/restart service
+This stops and removes the service but keeps your Pi-Bot files intact.
 
-```bash
-sudo systemctl stop pibot.service
-sudo systemctl restart pibot.service
-```
+### Complete Field Setup
+
+For a fully autonomous field robot:
+
+1. **Set up WiFi AP mode:**
+   ```bash
+   sudo ./scripts/setup-ap-mode.sh
+   ```
+
+2. **Install the service:**
+   ```bash
+   sudo ./scripts/install-service.sh
+   ```
+
+3. **Reboot:**
+   ```bash
+   sudo reboot
+   ```
+
+After reboot, the Pi will:
+1. Create the "PiBot" WiFi network
+2. Start the web controller automatically
+3. Be ready for connections at `http://192.168.4.1:5000`
 
 ## WiFi Access Point Mode (Field Operation)
 
@@ -175,7 +184,7 @@ When operating the robot in the field where there's no existing WiFi network, yo
 Run the setup script:
 
 ```bash
-sudo ./setup-ap-mode.sh
+sudo ./scripts/setup-ap-mode.sh
 ```
 
 This creates a WiFi network with:
@@ -186,7 +195,7 @@ This creates a WiFi network with:
 To customize the network name and password:
 
 ```bash
-sudo ./setup-ap-mode.sh MyRobot secretpass123
+sudo ./scripts/setup-ap-mode.sh MyRobot secretpass123
 ```
 
 After setup completes, reboot the Pi:
@@ -206,7 +215,7 @@ sudo reboot
 To see the current network mode and connection info:
 
 ```bash
-./network-status.sh
+./scripts/network-status.sh
 ```
 
 ### Switching Back to Normal WiFi
@@ -214,7 +223,7 @@ To see the current network mode and connection info:
 To disable AP mode and return to normal WiFi client mode:
 
 ```bash
-sudo ./disable-ap-mode.sh
+sudo ./scripts/disable-ap-mode.sh
 sudo reboot
 ```
 
@@ -236,8 +245,8 @@ sudo raspi-config
 
 If you want to test the web interface without a Raspberry Pi:
 
-1. Comment out or mock the `RPi.GPIO` import in `pibot.py`
-2. Run without sudo: `python3 pibotweb.py`
+1. Comment out or mock the `RPi.GPIO` import in `src/pibot.py`
+2. Run without sudo: `python3 src/pibotweb.py`
 3. The web interface will work, but motor commands won't execute
 
 ## Deactivating Virtual Environment
@@ -285,7 +294,7 @@ pip install --upgrade -r requirements.txt
 - Check wiring (see `wiring.md`)
 - Verify common ground between Pi and L298N
 - Check GPIO pins match configuration in `.env`
-- Test with basic script: `sudo venv/bin/python3 pibot.py`
+- Test with basic script: `sudo venv/bin/python3 src/pibot.py`
 
 ## Uninstalling
 
@@ -342,5 +351,5 @@ This enables:
 If you encounter issues:
 1. Check the troubleshooting section above
 2. Verify wiring matches `wiring.md`
-3. Test basic GPIO functionality with `pibot.py` demo
+3. Test basic GPIO functionality with `src/pibot.py` demo
 4. Check system logs: `sudo journalctl -xe`

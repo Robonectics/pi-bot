@@ -29,7 +29,7 @@ A web-based controller for a tank-style robot using Raspberry Pi and L298N motor
 
 3. **Run the Web Server**:
    ```bash
-   sudo venv/bin/python3 pibotweb.py
+   sudo venv/bin/python3 src/pibotweb.py
    ```
 
 4. **Access the Interface**:
@@ -64,14 +64,27 @@ See [wiring.md](wiring.md) for complete wiring diagrams and instructions.
 
 **Important**: Wire the 2 motors on each track in **parallel**, not series!
 
-## Files
+## Project Structure
 
-- `pibot.py` - Core robot control library with TankBot class
-- `pibotweb.py` - Flask web server with control interface
-- `wiring.md` - Complete hardware wiring guide
-- `SETUP.md` - Detailed setup and installation instructions
-- `requirements.txt` - Python dependencies
-- `.env` - Configuration file (create from `.env.example`)
+```
+pi-bot/
+├── src/
+│   ├── pibot.py          # Core robot control library
+│   ├── pibotweb.py       # Flask web server
+│   └── test_motor.py     # Motor testing script
+├── scripts/
+│   ├── setup-ap-mode.sh      # Configure WiFi AP mode
+│   ├── disable-ap-mode.sh    # Restore WiFi client mode
+│   ├── network-status.sh     # Show network status
+│   ├── install-service.sh    # Install systemd service
+│   ├── uninstall-service.sh  # Remove systemd service
+│   └── setup.sh              # Initial setup script
+├── README.md
+├── SETUP.md
+├── wiring.md
+├── requirements.txt
+└── .env                  # Configuration (create from .env.example)
+```
 
 ## Control Modes
 
@@ -154,15 +167,24 @@ PIN_IN1=17
 
 ## Running as a Service
 
-To auto-start on boot:
+To auto-start Pi-Bot on boot:
 
 ```bash
-sudo nano /etc/systemd/system/pibot.service
-# Copy service configuration from SETUP.md
+sudo ./scripts/install-service.sh
+```
 
-sudo systemctl daemon-reload
-sudo systemctl enable pibot.service
-sudo systemctl start pibot.service
+This installs a systemd service that:
+- Starts automatically on boot
+- Waits for network (works with AP mode or normal WiFi)
+- Auto-restarts on failure
+
+Service commands:
+```bash
+sudo systemctl status pibot    # Check status
+sudo systemctl stop pibot      # Stop
+sudo systemctl restart pibot   # Restart
+sudo journalctl -u pibot -f    # View logs
+sudo ./scripts/uninstall-service.sh    # Remove service
 ```
 
 ## Troubleshooting
@@ -171,7 +193,7 @@ sudo systemctl start pibot.service
 - Verify wiring matches `wiring.md`
 - Check common ground between Pi and L298N
 - Ensure motors are wired in parallel, not series
-- Run with sudo: `sudo venv/bin/python3 pibotweb.py`
+- Run with sudo: `sudo venv/bin/python3 src/pibotweb.py`
 
 ### One motor spins faster
 - Adjust multipliers in `.env`:
@@ -188,7 +210,7 @@ sudo systemctl start pibot.service
 
 ### Permission denied errors
 - Must run with `sudo` for GPIO access
-- Use: `sudo venv/bin/python3 pibotweb.py`
+- Use: `sudo venv/bin/python3 src/pibotweb.py`
 
 See [SETUP.md](SETUP.md) for more troubleshooting tips.
 
@@ -197,14 +219,14 @@ See [SETUP.md](SETUP.md) for more troubleshooting tips.
 ### Test without hardware
 
 ```python
-# Mock GPIO in pibot.py for testing
+# Mock GPIO in src/pibot.py for testing
 # Run without sudo on any computer
-python3 pibotweb.py
+python3 src/pibotweb.py
 ```
 
 ### Adding new movements
 
-Edit `pibot.py` to add methods:
+Edit `src/pibot.py` to add methods:
 
 ```python
 def custom_move(self, speed=50):
@@ -213,7 +235,7 @@ def custom_move(self, speed=50):
     self.set_right_track(speed)
 ```
 
-Then add API endpoint in `pibotweb.py`:
+Then add API endpoint in `src/pibotweb.py`:
 
 ```python
 elif action == 'custom':
@@ -257,7 +279,7 @@ For issues and questions:
 1. Check [SETUP.md](SETUP.md) troubleshooting section
 2. Review [wiring.md](wiring.md) for connection issues
 3. Verify `.env` configuration
-4. Test basic functionality with `pibot.py` demo
+4. Test basic functionality with `src/pibot.py` demo
 
 ---
 
