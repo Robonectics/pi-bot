@@ -2,6 +2,22 @@
 
 A web-based controller for a tank-style robot using Raspberry Pi and L298N motor driver.
 
+## One-Line Install
+
+Run this on your Raspberry Pi to install everything (WiFi AP, web server, auto-start):
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash
+```
+
+Custom WiFi name and password:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash -s -- MyBot mypassword
+```
+
+After reboot, connect to the **PiBot** WiFi and open `http://192.168.4.1:5000`
+
 ## Features
 
 - 🎮 **Web Interface**: Control your robot from any device on your network
@@ -77,8 +93,8 @@ pi-bot/
 │   ├── disable-ap-mode.sh    # Restore WiFi client mode
 │   ├── network-status.sh     # Show network status
 │   ├── install-service.sh    # Install systemd service
-│   ├── uninstall-service.sh  # Remove systemd service
-│   └── setup.sh              # Initial setup script
+│   └── uninstall-service.sh  # Remove systemd service
+├── install.sh            # One-line installer (curl | bash)
 ├── README.md
 ├── SETUP.md
 ├── wiring.md

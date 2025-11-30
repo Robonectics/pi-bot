@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Pi-Bot Web Controller
 Web interface for controlling tank robot via L298N motor driver
@@ -45,6 +46,43 @@ HTML_TEMPLATE = """
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+        }
+
+        .main-layout {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .track-slider {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background-color: #333;
+            border-radius: 10px;
+            height: 300px;
+        }
+
+        .track-slider label {
+            font-size: 12px;
+            margin-bottom: 10px;
+            color: #888;
+        }
+
+        .track-slider input[type="range"] {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            height: 200px;
+            width: 30px;
+            cursor: pointer;
+        }
+
+        .track-slider .value {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #4CAF50;
+            font-weight: bold;
         }
 
         .container {
@@ -172,7 +210,40 @@ HTML_TEMPLATE = """
             font-size: 18px;
         }
 
-        @media (max-width: 480px) {
+        @media (max-width: 600px) {
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .track-sliders-row {
+                display: flex;
+                gap: 20px;
+                order: 1;
+            }
+
+            .track-slider {
+                height: auto;
+                flex-direction: row;
+                padding: 10px 15px;
+            }
+
+            .track-slider input[type="range"] {
+                writing-mode: horizontal-tb;
+                direction: ltr;
+                height: 30px;
+                width: 100px;
+            }
+
+            .track-slider label {
+                margin-bottom: 0;
+                margin-right: 10px;
+            }
+
+            .track-slider .value {
+                margin-top: 0;
+                margin-left: 10px;
+            }
+
             .btn {
                 font-size: 14px;
                 min-height: 60px;
@@ -185,33 +256,49 @@ HTML_TEMPLATE = """
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🤖 Pi-Bot Controller</h1>
-
-        <div class="speed-control">
-            <label for="speed">Speed: <span class="speed-value" id="speedValue">{{ default_speed }}</span>%</label><br>
-            <input type="range" id="speed" min="{{ min_speed }}" max="{{ max_speed }}" value="{{ default_speed }}" step="10">
+    <div class="main-layout">
+        <!-- Left Track Multiplier -->
+        <div class="track-slider">
+            <label>LEFT</label>
+            <input type="range" id="leftMultiplier" min="0" max="100" value="100" step="5">
+            <span class="value" id="leftValue">100%</span>
         </div>
 
-        <br>
+        <div class="container">
+            <h1>Pi-Bot Controller</h1>
 
-        <div class="controls">
-            <button class="btn btn-forward-left" data-action="forward-left">↖</button>
-            <button class="btn btn-forward" data-action="forward">↑<br>Forward</button>
-            <button class="btn btn-forward-right" data-action="forward-right">↗</button>
+            <div class="speed-control">
+                <label for="speed">Speed: <span class="speed-value" id="speedValue">{{ default_speed }}</span>%</label><br>
+                <input type="range" id="speed" min="{{ min_speed }}" max="{{ max_speed }}" value="{{ default_speed }}" step="10">
+            </div>
 
-            <button class="btn btn-left" data-action="left">←<br>Left</button>
-            <button class="btn btn-stop" data-action="stop">⬛<br>STOP</button>
-            <button class="btn btn-right" data-action="right">→<br>Right</button>
+            <br>
 
-            <button class="btn btn-backward-left" data-action="backward-left">↙</button>
-            <button class="btn btn-backward" data-action="backward">↓<br>Backward</button>
-            <button class="btn btn-backward-right" data-action="backward-right">↘</button>
+            <div class="controls">
+                <button class="btn btn-forward-left" data-action="forward-left">↖</button>
+                <button class="btn btn-forward" data-action="forward">↑<br>Forward</button>
+                <button class="btn btn-forward-right" data-action="forward-right">↗</button>
+
+                <button class="btn btn-left" data-action="left">←<br>Left</button>
+                <button class="btn btn-stop" data-action="stop">⬛<br>STOP</button>
+                <button class="btn btn-right" data-action="right">→<br>Right</button>
+
+                <button class="btn btn-backward-left" data-action="backward-left">↙</button>
+                <button class="btn btn-backward" data-action="backward">↓<br>Backward</button>
+                <button class="btn btn-backward-right" data-action="backward-right">↘</button>
+            </div>
+
+            <div class="status">
+                <div>Status: <span id="status">Ready</span></div>
+                <div>Last Command: <span id="lastCommand">None</span></div>
+            </div>
         </div>
 
-        <div class="status">
-            <div>Status: <span id="status">Ready</span></div>
-            <div>Last Command: <span id="lastCommand">None</span></div>
+        <!-- Right Track Multiplier -->
+        <div class="track-slider">
+            <label>RIGHT</label>
+            <input type="range" id="rightMultiplier" min="0" max="100" value="100" step="5">
+            <span class="value" id="rightValue">100%</span>
         </div>
     </div>
 
@@ -222,10 +309,46 @@ HTML_TEMPLATE = """
         const lastCommandEl = document.getElementById('lastCommand');
         const buttons = document.querySelectorAll('.btn');
 
+        // Track multiplier elements
+        const leftMultiplier = document.getElementById('leftMultiplier');
+        const rightMultiplier = document.getElementById('rightMultiplier');
+        const leftValue = document.getElementById('leftValue');
+        const rightValue = document.getElementById('rightValue');
+
         // Update speed display
         speedSlider.addEventListener('input', function() {
             speedValue.textContent = this.value;
         });
+
+        // Update multiplier displays and send to server
+        leftMultiplier.addEventListener('input', function() {
+            leftValue.textContent = this.value + '%';
+            updateMultipliers();
+        });
+
+        rightMultiplier.addEventListener('input', function() {
+            rightValue.textContent = this.value + '%';
+            updateMultipliers();
+        });
+
+        function updateMultipliers() {
+            fetch('/api/multiplier', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    left: parseInt(leftMultiplier.value) / 100,
+                    right: parseInt(rightMultiplier.value) / 100
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'ok') {
+                    statusEl.textContent = 'Multipliers updated';
+                    statusEl.style.color = '#4CAF50';
+                }
+            })
+            .catch(error => console.error('Error updating multipliers:', error));
+        }
 
         // Handle button presses
         buttons.forEach(button => {
@@ -403,6 +526,28 @@ def control():
 def status():
     """Get current status"""
     return jsonify({'status': 'ok', 'message': 'Pi-Bot is ready'})
+
+@app.route('/api/multiplier', methods=['POST'])
+def set_multiplier():
+    """Set track speed multipliers for calibration"""
+    global bot
+
+    try:
+        data = request.get_json()
+        left = data.get('left')
+        right = data.get('right')
+
+        with command_lock:
+            bot.set_multipliers(left=left, right=right)
+
+        return jsonify({
+            'status': 'ok',
+            'left': bot.left_multiplier,
+            'right': bot.right_multiplier
+        })
+
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 def main():
     """Start the web server"""

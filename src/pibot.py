@@ -1,11 +1,58 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 """
 Pi-Bot Tank Robot Controller
 Controls two tank tracks via L298N motor driver
 """
 
-import RPi.GPIO as GPIO
 import time
+
+# Try to import RPi.GPIO, fall back to mock for testing on non-Pi systems
+try:
+    import RPi.GPIO as GPIO
+    MOCK_GPIO = False
+except (ImportError, RuntimeError):
+    print("WARNING: RPi.GPIO not available - using mock GPIO for testing")
+    MOCK_GPIO = True
+
+    # Mock GPIO module for testing on non-Pi systems
+    class MockGPIO:
+        BCM = "BCM"
+        OUT = "OUT"
+        HIGH = 1
+        LOW = 0
+
+        @staticmethod
+        def setmode(mode): pass
+
+        @staticmethod
+        def setwarnings(flag): pass
+
+        @staticmethod
+        def setup(pin, mode): pass
+
+        @staticmethod
+        def output(pin, state): pass
+
+        @staticmethod
+        def cleanup(): pass
+
+        class PWM:
+            def __init__(self, pin, freq):
+                self.pin = pin
+                self.freq = freq
+                self.duty = 0
+
+            def start(self, duty):
+                self.duty = duty
+
+            def ChangeDutyCycle(self, duty):
+                self.duty = duty
+
+            def stop(self):
+                pass
+
+    GPIO = MockGPIO()
 
 class TankBot:
     def __init__(self):
@@ -40,21 +87,35 @@ class TankBot:
         self.pwm_left.start(0)
         self.pwm_right.start(0)
 
+        # Track multipliers for calibration (0.0 to 1.0)
+        self.left_multiplier = 1.0
+        self.right_multiplier = 1.0
+
         print("TankBot initialized")
+
+    def set_multipliers(self, left=None, right=None):
+        """Set track speed multipliers for calibration"""
+        if left is not None:
+            self.left_multiplier = max(0.0, min(1.0, left))
+        if right is not None:
+            self.right_multiplier = max(0.0, min(1.0, right))
 
     def set_left_track(self, speed):
         """
         Set left track speed and direction
         speed: -100 to 100 (negative = backward, positive = forward)
         """
-        if speed > 0:
+        # Apply multiplier
+        adjusted_speed = speed * self.left_multiplier
+
+        if adjusted_speed > 0:
             GPIO.output(self.IN1, GPIO.HIGH)
             GPIO.output(self.IN2, GPIO.LOW)
-            self.pwm_left.ChangeDutyCycle(abs(speed))
-        elif speed < 0:
+            self.pwm_left.ChangeDutyCycle(abs(adjusted_speed))
+        elif adjusted_speed < 0:
             GPIO.output(self.IN1, GPIO.LOW)
             GPIO.output(self.IN2, GPIO.HIGH)
-            self.pwm_left.ChangeDutyCycle(abs(speed))
+            self.pwm_left.ChangeDutyCycle(abs(adjusted_speed))
         else:
             GPIO.output(self.IN1, GPIO.LOW)
             GPIO.output(self.IN2, GPIO.LOW)
@@ -65,14 +126,17 @@ class TankBot:
         Set right track speed and direction
         speed: -100 to 100 (negative = backward, positive = forward)
         """
-        if speed > 0:
+        # Apply multiplier
+        adjusted_speed = speed * self.right_multiplier
+
+        if adjusted_speed > 0:
             GPIO.output(self.IN3, GPIO.HIGH)
             GPIO.output(self.IN4, GPIO.LOW)
-            self.pwm_right.ChangeDutyCycle(abs(speed))
-        elif speed < 0:
+            self.pwm_right.ChangeDutyCycle(abs(adjusted_speed))
+        elif adjusted_speed < 0:
             GPIO.output(self.IN3, GPIO.LOW)
             GPIO.output(self.IN4, GPIO.HIGH)
-            self.pwm_right.ChangeDutyCycle(abs(speed))
+            self.pwm_right.ChangeDutyCycle(abs(adjusted_speed))
         else:
             GPIO.output(self.IN3, GPIO.LOW)
             GPIO.output(self.IN4, GPIO.LOW)

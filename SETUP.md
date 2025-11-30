@@ -8,9 +8,17 @@ This guide will help you set up the Python virtual environment and run the web c
 - Python 3.7 or higher
 - Internet connection (for initial setup)
 
-## Quick Start
+## Quick Start (Automated)
 
-Run this one-line setup command:
+Run the one-line installer on your Raspberry Pi:
+
+```bash
+curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh | sudo bash
+```
+
+This installs everything, sets up WiFi AP mode, and configures auto-start.
+
+## Quick Start (Manual)
 
 ```bash
 python3 -m venv venv && source venv/bin/activate && pip install -r requirements.txt
