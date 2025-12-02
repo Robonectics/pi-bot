@@ -43,6 +43,18 @@ fi
 
 log_info "Disabling Pi-Bot Access Point mode..."
 
+# Detect network manager (Bookworm uses NetworkManager, Bullseye uses dhcpcd)
+if systemctl is-active --quiet NetworkManager; then
+    USE_NETWORKMANAGER=true
+    log_info "Detected NetworkManager (Bookworm-style)"
+elif systemctl list-unit-files | grep -q "dhcpcd.service"; then
+    USE_NETWORKMANAGER=false
+    log_info "Detected dhcpcd (Bullseye-style)"
+else
+    USE_NETWORKMANAGER=true
+    log_info "Assuming NetworkManager setup"
+fi
+
 # Stop AP services
 log_info "Stopping AP services..."
 systemctl stop hostapd 2>/dev/null || true
@@ -58,19 +70,19 @@ rm -f /etc/dnsmasq.d/pibot-ap.conf
 rm -f /etc/hostapd/hostapd.conf
 rm -f /etc/pibot-ap-mode
 
-# Restore dhcpcd.conf - remove Pi-Bot AP Configuration block
-if [ -f /etc/dhcpcd.conf ]; then
+# Restore dhcpcd.conf - remove Pi-Bot AP Configuration block (only for Bullseye)
+if [ "$USE_NETWORKMANAGER" = false ] && [ -f /etc/dhcpcd.conf ]; then
     log_info "Restoring dhcpcd.conf..."
     # Remove the Pi-Bot AP configuration block
     sed -i '/# Pi-Bot AP Configuration/,/nohook wpa_supplicant/d' /etc/dhcpcd.conf
     # Remove any trailing empty lines
     sed -i -e :a -e '/^\n*$/{$d;N;ba' -e '}' /etc/dhcpcd.conf
-fi
 
-# Alternatively, restore from backup if it exists
-if [ -f "$BACKUP_DIR/dhcpcd.conf.backup" ]; then
-    log_info "Backup found - restoring original dhcpcd.conf"
-    cp "$BACKUP_DIR/dhcpcd.conf.backup" /etc/dhcpcd.conf
+    # Alternatively, restore from backup if it exists
+    if [ -f "$BACKUP_DIR/dhcpcd.conf.backup" ]; then
+        log_info "Backup found - restoring original dhcpcd.conf"
+        cp "$BACKUP_DIR/dhcpcd.conf.backup" /etc/dhcpcd.conf
+    fi
 fi
 
 # Reset hostapd default config
@@ -80,11 +92,19 @@ fi
 
 # Restart networking
 log_info "Restarting networking services..."
-systemctl restart dhcpcd
+if [ "$USE_NETWORKMANAGER" = true ]; then
+    # On Bookworm, re-enable NetworkManager control of wlan0
+    nmcli device set $INTERFACE managed yes 2>/dev/null || true
+    systemctl restart NetworkManager
+else
+    systemctl restart dhcpcd
+fi
 
-# Re-enable wpa_supplicant for normal WiFi
-systemctl enable wpa_supplicant 2>/dev/null || true
-systemctl start wpa_supplicant 2>/dev/null || true
+# Re-enable wpa_supplicant for normal WiFi (only needed on Bullseye)
+if [ "$USE_NETWORKMANAGER" = false ]; then
+    systemctl enable wpa_supplicant 2>/dev/null || true
+    systemctl start wpa_supplicant 2>/dev/null || true
+fi
 
 echo ""
 echo "=============================================="

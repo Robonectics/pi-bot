@@ -128,16 +128,37 @@ if [ -f /etc/dnsmasq.conf ] && [ ! -f "$BACKUP_DIR/dnsmasq.conf.backup" ]; then
     log_info "Backed up dnsmasq.conf"
 fi
 
+# Detect network manager (Bookworm uses NetworkManager, Bullseye uses dhcpcd)
+if systemctl is-active --quiet NetworkManager; then
+    USE_NETWORKMANAGER=true
+    log_info "Detected NetworkManager (Bookworm-style)"
+elif systemctl list-unit-files | grep -q "dhcpcd.service"; then
+    USE_NETWORKMANAGER=false
+    log_info "Detected dhcpcd (Bullseye-style)"
+else
+    USE_NETWORKMANAGER=true
+    log_info "Assuming NetworkManager setup"
+fi
+
 # Configure static IP for wlan0
 log_info "Configuring static IP..."
-if ! grep -q "# Pi-Bot AP Configuration" /etc/dhcpcd.conf 2>/dev/null; then
-    cat >> /etc/dhcpcd.conf << EOF
+if [ "$USE_NETWORKMANAGER" = true ]; then
+    # NetworkManager (Bookworm) - configure via nmcli
+    nmcli device set $INTERFACE managed no 2>/dev/null || true
+    ip addr flush dev $INTERFACE 2>/dev/null || true
+    ip addr add $IP_ADDRESS/24 dev $INTERFACE 2>/dev/null || true
+    ip link set $INTERFACE up
+else
+    # dhcpcd (Bullseye) - configure via dhcpcd.conf
+    if ! grep -q "# Pi-Bot AP Configuration" /etc/dhcpcd.conf 2>/dev/null; then
+        cat >> /etc/dhcpcd.conf << EOF
 
 # Pi-Bot AP Configuration
 interface $INTERFACE
     static ip_address=$IP_ADDRESS/24
     nohook wpa_supplicant
 EOF
+    fi
 fi
 
 # Configure dnsmasq (DHCP server)
@@ -191,7 +212,15 @@ echo "CONFIGURED=$(date)" >> /etc/pibot-ap-mode
 
 # Restart services
 log_info "Starting Access Point..."
-systemctl restart dhcpcd
+if [ "$USE_NETWORKMANAGER" = true ]; then
+    # On Bookworm, just make sure the interface is configured
+    nmcli device set $INTERFACE managed no 2>/dev/null || true
+    ip addr flush dev $INTERFACE 2>/dev/null || true
+    ip addr add $IP_ADDRESS/24 dev $INTERFACE 2>/dev/null || true
+    ip link set $INTERFACE up
+else
+    systemctl restart dhcpcd
+fi
 sleep 2
 systemctl restart dnsmasq
 systemctl restart hostapd
