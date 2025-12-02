@@ -29,6 +29,12 @@ curl -sSL https://raw.githubusercontent.com/Robonectics/pi-bot/main/install.sh |
 
 Connect to the **PiBot** WiFi (password: `pibot1234`) and open `http://192.168.4.1:5000`
 
+### Change WiFi name later
+
+```bash
+sudo /opt/pi-bot/scripts/setup-ap-mode.sh NewName newpassword
+```
+
 ## Features
 
 - 🎮 **Web Interface**: Control your robot from any device on your network
