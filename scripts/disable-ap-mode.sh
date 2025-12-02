@@ -69,6 +69,8 @@ log_info "Removing AP configurations..."
 rm -f /etc/dnsmasq.d/pibot-ap.conf
 rm -f /etc/hostapd/hostapd.conf
 rm -f /etc/pibot-ap-mode
+rm -f /etc/NetworkManager/conf.d/pibot-ap.conf
+rm -f /etc/systemd/network/10-pibot-ap.network
 
 # Restore dhcpcd.conf - remove Pi-Bot AP Configuration block (only for Bullseye)
 if [ "$USE_NETWORKMANAGER" = false ] && [ -f /etc/dhcpcd.conf ]; then
@@ -114,11 +116,17 @@ echo ""
 echo "The Pi is now in normal WiFi client mode."
 echo ""
 echo "To connect to a WiFi network:"
-echo "  sudo raspi-config  (Network Options > Wireless LAN)"
-echo "  or edit /etc/wpa_supplicant/wpa_supplicant.conf"
+if [ "$USE_NETWORKMANAGER" = true ]; then
+    echo "  nmcli device wifi list                    # List available networks"
+    echo "  nmcli device wifi connect SSID password PASSWORD"
+    echo "  or: sudo raspi-config  (System Options > Wireless LAN)"
+else
+    echo "  sudo raspi-config  (Network Options > Wireless LAN)"
+    echo "  or edit /etc/wpa_supplicant/wpa_supplicant.conf"
+fi
 echo ""
 echo "To re-enable AP mode:"
-echo "  sudo ./setup-ap-mode.sh [SSID] [PASSWORD]"
+echo "  sudo /opt/pi-bot/scripts/setup-ap-mode.sh [SSID] [PASSWORD]"
 echo ""
 echo "NOTE: Reboot recommended for changes to fully apply"
 echo "  sudo reboot"

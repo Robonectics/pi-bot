@@ -143,7 +143,28 @@ fi
 # Configure static IP for wlan0
 log_info "Configuring static IP..."
 if [ "$USE_NETWORKMANAGER" = true ]; then
-    # NetworkManager (Bookworm) - configure via nmcli
+    # NetworkManager (Bookworm) - tell NM to ignore wlan0 permanently
+    mkdir -p /etc/NetworkManager/conf.d
+    cat > /etc/NetworkManager/conf.d/pibot-ap.conf << EOF
+# Pi-Bot AP Configuration - prevent NetworkManager from managing wlan0
+[keyfile]
+unmanaged-devices=interface-name:$INTERFACE
+EOF
+
+    # Create systemd-networkd config for static IP (persists across reboots)
+    mkdir -p /etc/systemd/network
+    cat > /etc/systemd/network/10-pibot-ap.network << EOF
+[Match]
+Name=$INTERFACE
+
+[Network]
+Address=$IP_ADDRESS/24
+EOF
+
+    # Enable systemd-networkd to handle the interface
+    systemctl enable systemd-networkd 2>/dev/null || true
+
+    # Apply immediately
     nmcli device set $INTERFACE managed no 2>/dev/null || true
     ip addr flush dev $INTERFACE 2>/dev/null || true
     ip addr add $IP_ADDRESS/24 dev $INTERFACE 2>/dev/null || true
